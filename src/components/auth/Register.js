@@ -1,5 +1,6 @@
 import React from 'react';
 import {Link} from "react-router-dom";
+import md5 from "md5";
 import {Grid,Form,Button, Header,Icon, Segment,Message} from "semantic-ui-react";
 import firebase from "../../firebase";
 
@@ -10,7 +11,8 @@ class Register extends React.Component{
      password:"",
      passwordConfirmation:"",
      errors:[],
-     loading:false
+     loading:false,
+     userRef:firebase.database().ref("users")
     }
     handleChange=(event)=>{
         this.setState({[event.target.name]:event.target.value})
@@ -49,6 +51,12 @@ class Register extends React.Component{
             return true;
         }
     }
+    saveUser=(createdUser)=>{
+    return this.state.userRef.child(createdUser.user.uid).set({
+        name:createdUser.user.displayName,
+        avatar:createdUser.user.photoURL
+    });
+    }
     handleSubmit=(event)=>{
         event.preventDefault();
         if(this.isFormValid())
@@ -56,9 +64,20 @@ class Register extends React.Component{
    this.setState({errors:[],loading:true});
     firebase.auth().createUserWithEmailAndPassword(this.state.email,this.state.password)
         .then((createdUser)=>{
-            this.setState({loading:false});
+        createdUser.user.updateProfile(({
+                displayName:this.state.username,
+                photoURL:`http://gravatar.com/avatar/${md5(createdUser.user.email)}?d=identicon`
+            })).then(()=>{
+                this.saveUser(createdUser).then(()=>{
+                    console.log("user saved");
+                });
+                this.setState({loading:false});
+            }).catch((error)=>{
+          this.setState({errors:this.state.errors.concat(error)});
+            })
+            
         }).catch((err)=>{
-            this.setState({loading:false,errors:[].concat(err)})
+            this.setState({loading:false,errors:this.state.errors.concat(err)})
         })
     }
     }
@@ -74,7 +93,7 @@ class Register extends React.Component{
    return (
     <Grid textAlign="center" verticalAlign="middle" className="App">
     <Grid.Column style={{maxWidth:450}}>
-    <Header as="h2" icon color="orange" >
+    <Header as="h1" icon color="orange" >
     <Icon name="puzzle piece" color="orange"></Icon>
      Register For DevChat
     </Header>
