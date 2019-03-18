@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {BrowserRouter as Router,Route,Switch,withRouter} from "react-router-dom";
 import {createStore} from "redux";
-import {Provider} from "react-redux";
+import {Provider,connect} from "react-redux";
 import {composeWithDevTools} from "redux-devtools-extension";
 import "semantic-ui-css/semantic.min.css"
 import './index.css';
@@ -11,17 +11,27 @@ import * as serviceWorker from './serviceWorker';
 import firebase from "./firebase";
 import Login from './components/auth/Login';
 import Register from "./components/auth/Register";
+import rootReducer from './reducers';
+import {setUser} from "./actions";
+import {clearUser} from "./actions"
+import Spinner from "./Spinner";
 class Root extends React.Component{
     componentDidMount()
     {
     firebase.auth().onAuthStateChanged(user=>{
         if(user)
-        {this.props.history.push("/");}
+        {
+            this.props.setUser(user);
+            this.props.history.push("/");
+        }else{
+            this.props.history.push("/login");
+            this.props.clearUser();
+        }
     })
     
     }
     render(){
-    return(
+    return this.props.isLoading?<Spinner/>:(
     <Switch>
     <Route exact path="/" component={App}/>
     <Route path="/login" component={Login}/>
@@ -30,8 +40,19 @@ class Root extends React.Component{
    )
         }
 }
-const store=createStore(()=>{},composeWithDevTools())
-const RootWithAuth=withRouter(Root);
+const store=createStore(rootReducer,composeWithDevTools());
+const mapStateToProps=(state)=>{
+return {
+    "isLoading":state.user.isLoading
+}
+}
+const mapDispatchToProps=(dispatch)=>{
+    return {
+        setUser:(currentUser)=>dispatch(setUser(currentUser)),
+        clearUser:()=>dispatch(clearUser())
+    }
+}
+const RootWithAuth=withRouter(connect(mapStateToProps,mapDispatchToProps)(Root));
 ReactDOM.render(<Provider store={store}><Router><RootWithAuth/></Router></Provider>, document.getElementById('root'));
 
 // If you want your app to work offline and load faster, you can change
