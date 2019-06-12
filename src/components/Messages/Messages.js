@@ -32,11 +32,17 @@ export default class Messages extends Component {
        return (<Message key={message.timestamp} user={this.state.user} message={message} />)
      })
    }
+   displayChannelName=(channel)=>{
+     return channel?`#${channel.name}`:""
+   }
+   componentWillUnmount(){
+     this.state.messagesRef.off();
+   }
   render() {
       const {messagesRef,channel,user,messages}=this.state;
     return (
       <React.Fragment>  
-      <MessagesHeader/>
+      <MessagesHeader channelName={this.displayChannelName(channel)}/>
       <Segment>
       <Comment.Group className="messages">
       {this.displayMessages(messages)}
